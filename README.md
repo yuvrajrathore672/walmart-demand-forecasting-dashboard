@@ -52,3 +52,13 @@ Retailers routinely lose revenue in two directions: **stockouts** (lost sales wh
 
 ## Dashboard Screenshots
 
+### Company Overview
+![Company Overview Dashboard](assets/overview.png)
+
+### Department Drill-Down
+![Department Drill-Down Dashboard](assets/page_2.png)
+
+### Forecasting 
+
+![Time Series Forecasting](assets/forecasting_1.png) 
+![Time Series Forecasting](assets/forecasting_2.png) 
