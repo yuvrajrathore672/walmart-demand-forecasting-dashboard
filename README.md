@@ -1,6 +1,10 @@
-# Retail Demand Forecasting & Inventory Optimization Dashboard
+# Walmart Sales Demand Forecasting & Inventory Risk Dashboard
 
 A SQL → Python → Power BI pipeline that forecasts weekly product demand and flags stockout/overstock risk, with a business-impact dashboard quantifying revenue exposure.
+
+![Company Overview Dashboard](assets/overview.png)
+
+---
 
 ## Problem Statement
 
@@ -8,12 +12,13 @@ Retailers routinely lose revenue in two directions: **stockouts** (lost sales wh
 
 ## Data Source
 
-- **Walmart Recruiting - Store Sales Forecasting** (Kaggle), covering weekly sales by Store and Department from Feb 2010 to late 2012 (~421,570 rows), plus store metadata and economic/holiday features (temperature, fuel price, CPI, unemployment, markdown promotions).
+- **Walmart Recruiting – Store Sales Forecasting** (Kaggle), covering weekly sales by Store and Department from Feb 2010 to late 2012 (~421,570 rows), plus store metadata and economic/holiday features (temperature, fuel price, CPI, unemployment, markdown promotions).
 - **Note on inventory data:** the source dataset contains no real stock/inventory information. An `inventory` table was engineered using standard supply-chain formulas (reorder point, safety stock) derived from each department's actual historical demand and demand variability, with `Current_Stock` randomized around each department's calculated reorder point to produce realistic risk variation. This is documented transparently rather than presented as real inventory data.
 
 ## Methodology
 
 ### 1. SQL (MySQL)
+
 - Loaded raw CSVs via `LOAD DATA INFILE`, resolving data-quality issues along the way: an incomplete composite primary key that was silently dropping ~98% of sales rows, inconsistent boolean encoding for holiday flags across tables, and negative average demand values caused by returns-heavy departments.
 - Built a `dept_demand_stats` table (average and standard deviation of weekly sales per Store-Department), with a fallback volatility estimate for departments with under 10 weeks of history.
 - Engineered an `inventory` table applying industry-standard formulas:
@@ -23,6 +28,7 @@ Retailers routinely lose revenue in two directions: **stockouts** (lost sales wh
 - Joined sales, rolling averages, and inventory into a single `sales_summary_view` combining aggregations, a window function, and CASE-based business logic (stockout risk flags).
 
 ### 2. Python (pandas, Prophet)
+
 - Connected to MySQL via SQLAlchemy and pulled `sales_summary_view` into pandas.
 - Selected the top 10 Store-Department combinations by total historical sales as forecasting targets.
 - Ran exploratory analysis (sales trend, holiday vs. non-holiday averages) to sanity-check patterns before modeling.
@@ -31,6 +37,7 @@ Retailers routinely lose revenue in two directions: **stockouts** (lost sales wh
 - Exported a department-level dataset (forecast + inventory risk fields) and a company-level aggregated dataset to CSV for Power BI.
 
 ### 3. Power BI
+
 - **Company Overview page:** actual vs. forecasted sales trend, with KPI cards for total forecasted revenue, departments at risk, and total revenue at risk.
 - **Department Drill-Down page:** a Store-Department slicer, a per-department forecast chart, and a stock-vs-reorder-point table with conditional-formatting risk flags (red/green).
 - DAX measures built to correctly aggregate values across a date-grained table without double-counting repeated per-department fields (caught and fixed a 155x overcounting bug in an early version of the revenue-at-risk measure).
@@ -43,13 +50,6 @@ Retailers routinely lose revenue in two directions: **stockouts** (lost sales wh
 - Holiday weeks show a measurably higher average sales figure than non-holiday weeks, consistent with expected retail seasonality.
 - The highest-revenue departments (Dept 92, Dept 95) were consistent across multiple stores, suggesting certain product categories drive disproportionate revenue company-wide rather than being store-specific outliers.
 
-## Tools & Skills
-
-- **SQL:** MySQL — joins, aggregations, window functions, data-quality debugging, views
-- **Python:** pandas, SQLAlchemy, Prophet (time-series forecasting), matplotlib
-- **BI:** Power BI Desktop — DAX measures, conditional formatting, interactive slicers, multi-page dashboard design
-- **Domain:** inventory management formulas (reorder point, safety stock), retail demand forecasting
-
 ## Dashboard Screenshots
 
 ### Company Overview
@@ -58,7 +58,38 @@ Retailers routinely lose revenue in two directions: **stockouts** (lost sales wh
 ### Department Drill-Down
 ![Department Drill-Down Dashboard](assets/page_2.png)
 
-### Forecasting 
+### Forecasting
+![Time Series Forecasting](assets/forecasting_1.png)
+![Time Series Forecasting](assets/forecasting_2.png)
 
-![Time Series Forecasting](assets/forecasting_1.png) 
-![Time Series Forecasting](assets/forecasting_2.png) 
+## Tools & Skills
+
+| Category | Tools / Concepts |
+|---|---|
+| SQL | MySQL — joins, aggregations, window functions, views, data-quality debugging |
+| Python | pandas, SQLAlchemy, Prophet (time-series forecasting), matplotlib |
+| BI | Power BI Desktop — DAX measures, conditional formatting, interactive slicers, multi-page dashboard design |
+| Domain | Inventory management formulas (reorder point, safety stock), retail demand forecasting |
+
+## Repo Structure
+
+```
+├── Walmart_Sales_Forecasting.ipynb   # SQL extraction + Prophet forecasting + CSV export
+├── Walmart_sales_forecasting_dashboard.pbix   # Power BI dashboard (open in Power BI Desktop)
+├── sales.csv                          # Raw/processed sales data
+├── assets/                            # Dashboard screenshots used in this README
+└── README.md
+```
+
+> **Note:** GitHub can't preview `.pbix` files directly — download it and open with [Power BI Desktop](https://www.microsoft.com/en-us/power-platform/products/power-bi/downloads) (free) to explore the interactive dashboard.
+
+## Limitations & Future Work
+
+- Each department's Prophet model is fit independently; a hierarchical or global model could improve accuracy for low-volume departments with sparse history.
+- Inventory figures (stock levels) are simulated from demand statistics rather than pulled from a real WMS — a natural next step would be to test the pipeline against a dataset with genuine inventory records.
+- Forecast horizon is fixed at 12 weeks; adding a rolling backtest (train/test split across multiple historical windows) would give a more rigorous accuracy estimate (e.g., MAPE/MAE per department) instead of only visual validation.
+- Could extend the alerting logic into an automated email/Slack notification when a department crosses into "At Risk" status.
+
+## Author
+
+Built by [Yuvraj Rathore](https://github.com/yuvrajrathore672) as part of a Data Analyst portfolio.
